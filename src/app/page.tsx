@@ -17,9 +17,9 @@ export default function Home() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { data } = await axios.post("http://localhost:3000/auth/login", loginData);
+      const { data } = await axios.post("https://users-api-rmm5.onrender.com/auth/login", loginData);
       setUser(data.user);
-      document.cookie = `token=${data.user.id}; path=/`;
+      document.cookie = `token=${data.id}; path=/`;
       toast.success("Bienvenido!");
       router.push("/dashboard");
     } catch (err: any) {
@@ -36,7 +36,7 @@ export default function Home() {
     }
     setLoading(true);
     try {
-      await axios.post("http://localhost:3000/auth/register", registerData);
+      await axios.post("https://users-api-rmm5.onrender.com/auth/register", registerData);
       toast.success("¡Usuario registrado con éxito!");
       setActive(false);
     } catch (err: any) {
