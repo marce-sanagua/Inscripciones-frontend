@@ -5,12 +5,20 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useAppStore } from "@/src/store";
 
+type ApiError = {
+  response?: {
+    data?: {
+      error?: string;
+    };
+  };
+};
+
 export default function Home() {
   const { setUser } = useAppStore();
   const router = useRouter();
   const [active, setActive] = useState(false);
   const [loginData, setLoginData] = useState({ email: "", password: "" });
-  const [registerData, setRegisterData] = useState({ dni: "", email: "", password: "", confirmPassword: "", rol: "alumno" });
+  const [registerData, setRegisterData] = useState({ nombre: "", dni: "", email: "", password: "", confirmPassword: "", rol: "alumno" });
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -22,8 +30,9 @@ export default function Home() {
       document.cookie = `token=${data.id}; path=/`;
       toast.success("Bienvenido!");
       router.push("/dashboard");
-    } catch (err: any) {
-      toast.warning(err.response?.data?.error || "Error al iniciar sesión");
+    } catch (err) {
+      const apiError = err as ApiError;
+      toast.warning(apiError.response?.data?.error || "Error al iniciar sesión");
     } finally {
       setLoading(false);
     }
@@ -39,8 +48,9 @@ export default function Home() {
       await axios.post("https://users-api-rmm5.onrender.com/auth/register", registerData);
       toast.success("¡Usuario registrado con éxito!");
       setActive(false);
-    } catch (err: any) {
-      toast.warning(err.response?.data?.error || "Error al registrarse");
+    } catch (err) {
+      const apiError = err as ApiError;
+      toast.warning(apiError.response?.data?.error || "Error al registrarse");
     } finally {
       setLoading(false);
     }
@@ -80,7 +90,7 @@ export default function Home() {
         .platform-name { font-size:12px; opacity:0.6; margin-bottom:16px; }
       `}</style>
 
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+      <div className="auth-page">
         <div className={`container${active ? ' active' : ''}`}>
 
           <div className="form-box login">
@@ -100,6 +110,9 @@ export default function Home() {
             <form onSubmit={handleRegister}>
               <h1>Registro</h1>
               <div className="input-box">
+                <input type="text" placeholder="Nombre completo" value={registerData.nombre} onChange={e => setRegisterData({ ...registerData, nombre: e.target.value })} required />
+              </div>
+              <div className="input-box">
                 <input type="text" placeholder="DNI" value={registerData.dni} onChange={e => setRegisterData({ ...registerData, dni: e.target.value })} required />
               </div>
               <div className="input-box">
@@ -112,7 +125,7 @@ export default function Home() {
                 <input type="password" placeholder="Confirmar contraseña" value={registerData.confirmPassword} onChange={e => setRegisterData({ ...registerData, confirmPassword: e.target.value })} required />
               </div>
               <div className="input-box">
-                <select value={registerData.rol} onChange={e => setRegisterData({ ...registerData, rol: e.target.value })}>
+                <select aria-label="Rol de registro" value={registerData.rol} onChange={e => setRegisterData({ ...registerData, rol: e.target.value })}>
                   <option value="alumno">Alumno</option>
                   <option value="profesor">Profesor</option>
                 </select>
