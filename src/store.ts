@@ -23,8 +23,11 @@ type Materias = {
 };
 
 type User = {
-  dni: string;
-  email: string;
+  dni?: string;
+  email?: string;
+  nombre?: string;
+  rol?: string;
+  id?: number;
 };
 
 interface AppStore {
@@ -32,13 +35,13 @@ interface AppStore {
   alumnos: Alumno[];
   alumnoSeleccionado: Alumno | null;
   materias: Materias[];
-  user: User | {};
+  user: User | null;
 
   setProfesionales: (items: Profesional[]) => void;
   setAlumnos: (items: Alumno[]) => void;
   setAlumnoSeleccionado: (alumno: Alumno | null) => void;
   setMaterias: (items: Materias[]) => void;
-  setUser: (user: User | {}) => void;
+  setUser: (user: User | null) => void;
   clearStore: () => void;
 }
 
@@ -49,7 +52,7 @@ export const useAppStore = create<AppStore>()(
       alumnos: [],
       alumnoSeleccionado: null,
       materias: [],
-      user: {},
+      user: null,
       setProfesionales: (items) => set({ profesionales: items }),
       setAlumnos: (items) => set({ alumnos: items }),
       setAlumnoSeleccionado: (alumno) => set({ alumnoSeleccionado: alumno }),
@@ -61,7 +64,7 @@ export const useAppStore = create<AppStore>()(
           alumnos: [],
           alumnoSeleccionado: null,
           materias: [],
-          user: {},
+          user: null,
         }),
     }),
     {
