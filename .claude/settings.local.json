@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(npx next *)",
+      "Bash(Remove-Item \"C:\\\\Users\\\\cheri\\\\OneDrive\\\\Desktop\\\\plataforma-inscripciones-frontend\\\\src\\\\middleware.ts\")",
+      "Bash(npm install *)",
+      "Bash(npm config *)",
+      "Bash(mkdir -p \"c:\\\\Users\\\\cheri\\\\OneDrive\\\\Desktop\\\\plataforma-inscripciones-frontend\\\\src\\\\app\\\\dashboard\\\\materia\\\\[id]\")"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\cheri\\OneDrive\\Desktop\\plataforma-inscripciones-frontend\\src\\app\\dashboard\\materia"
+    ]
+  }
+}

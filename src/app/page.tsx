@@ -9,30 +9,48 @@ type ApiError = {
   response?: {
     data?: {
       error?: string;
+      message?: string;
     };
   };
 };
+
+const Eye = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
+  </svg>
+);
+const EyeOff = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" /><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" /><line x1="1" y1="1" x2="23" y2="23" />
+  </svg>
+);
 
 export default function Home() {
   const { setUser } = useAppStore();
   const router = useRouter();
   const [active, setActive] = useState(false);
   const [loginData, setLoginData] = useState({ email: "", password: "" });
-  const [registerData, setRegisterData] = useState({ nombre: "", dni: "", email: "", password: "", confirmPassword: "", rol: "alumno" });
+  const [registerData, setRegisterData] = useState({ nombre: "", dni: "", email: "", password: "", confirmPassword: "", rol: "alumno", codigoProfesor: "" });
   const [loading, setLoading] = useState(false);
+  const [showLoginPass, setShowLoginPass] = useState(false);
+  const [showRegisterPass, setShowRegisterPass] = useState(false);
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
+  const [showCodigo, setShowCodigo] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const { data } = await axios.post("https://users-api-rmm5.onrender.com/auth/login", loginData);
-      setUser(data.user);
-      document.cookie = `token=${data.id}; path=/`;
+      const { data } = await axios.post("http://localhost:3001/login", loginData);
+      const userData = data.user ?? data;
+      const token = data.token ?? String(userData.id);
+      setUser({ id: userData.id, rol: userData.rol, nombre: userData.nombre });
+      document.cookie = `token=${token}; path=/`;
       toast.success("Bienvenido!");
       router.push("/dashboard");
     } catch (err) {
       const apiError = err as ApiError;
-      toast.warning(apiError.response?.data?.error || "Error al iniciar sesión");
+      toast.warning(apiError.response?.data?.message || apiError.response?.data?.error || "Error al iniciar sesión");
     } finally {
       setLoading(false);
     }
@@ -43,14 +61,37 @@ export default function Home() {
     if (registerData.password !== registerData.confirmPassword) {
       return toast.warning("Las contraseñas no coinciden");
     }
+    if (registerData.rol === "profesor") {
+      if (!registerData.codigoProfesor) {
+        return toast.warning("Ingresá el código de acceso para profesores");
+      }
+      if (registerData.codigoProfesor !== "PROF2026") {
+        return toast.warning("Código incorrecto");
+      }
+    }
     setLoading(true);
     try {
-      await axios.post("https://users-api-rmm5.onrender.com/auth/register", registerData);
+      await axios.post("http://localhost:3001/usuarios/register", registerData);
       toast.success("¡Usuario registrado con éxito!");
       setActive(false);
+      try {
+        const mailRes = await fetch("/api/bienvenida", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: registerData.email, nombre: registerData.nombre }),
+        });
+        if (!mailRes.ok) {
+          const mailData = await mailRes.json();
+          console.error("Error email:", mailData);
+        }
+      } catch (mailErr) {
+        console.error("Error al enviar email:", mailErr);
+      }
     } catch (err) {
       const apiError = err as ApiError;
-      toast.warning(apiError.response?.data?.error || "Error al registrarse");
+      const msg = apiError.response?.data?.message || apiError.response?.data?.error || "";
+      const emailDuplicado = msg.toLowerCase().includes("email") || msg.toLowerCase().includes("existe") || msg.toLowerCase().includes("already") || msg.toLowerCase().includes("duplicate");
+      toast.warning(emailDuplicado ? "Ya existe una cuenta con ese email" : msg || "Error al registrarse");
     } finally {
       setLoading(false);
     }
@@ -88,6 +129,9 @@ export default function Home() {
         .toggle-btn { width:160px; height:44px; background:transparent; border:2px solid #fff; border-radius:8px; cursor:pointer; font-size:14px; color:#fff; font-weight:600; font-family:'Poppins',sans-serif; transition:background .2s; }
         .toggle-btn:hover { background:rgba(255,255,255,0.15); }
         .platform-name { font-size:12px; opacity:0.6; margin-bottom:16px; }
+        .eye-btn { position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:#888; padding:0; display:flex; align-items:center; }
+        .eye-btn:hover { color:#555; }
+        .input-box .pass-input { padding-right:40px; }
       `}</style>
 
       <div className="auth-page">
@@ -100,7 +144,10 @@ export default function Home() {
                 <input type="email" placeholder="Correo electrónico" value={loginData.email} onChange={e => setLoginData({ ...loginData, email: e.target.value })} required />
               </div>
               <div className="input-box">
-                <input type="password" placeholder="Contraseña" value={loginData.password} onChange={e => setLoginData({ ...loginData, password: e.target.value })} required />
+                <input className="pass-input" type={showLoginPass ? "text" : "password"} placeholder="Contraseña" value={loginData.password} onChange={e => setLoginData({ ...loginData, password: e.target.value })} required />
+                <button type="button" className="eye-btn" onClick={() => setShowLoginPass(v => !v)} tabIndex={-1}>
+                  {showLoginPass ? <EyeOff /> : <Eye />}
+                </button>
               </div>
               <button type="submit" className="btn" disabled={loading}>{loading ? "Cargando..." : "Ingresar"}</button>
             </form>
@@ -113,16 +160,43 @@ export default function Home() {
                 <input type="text" placeholder="Nombre completo" value={registerData.nombre} onChange={e => setRegisterData({ ...registerData, nombre: e.target.value })} required />
               </div>
               <div className="input-box">
-                <input type="text" placeholder="DNI" value={registerData.dni} onChange={e => setRegisterData({ ...registerData, dni: e.target.value })} required />
+                {registerData.rol === "profesor" ? (
+                  <>
+                    <input
+                      className="pass-input"
+                      type={showCodigo ? "text" : "password"}
+                      placeholder="Código de acceso para profesores"
+                      value={registerData.codigoProfesor}
+                      onChange={e => setRegisterData({ ...registerData, codigoProfesor: e.target.value })}
+                      required
+                    />
+                    <button type="button" className="eye-btn" onClick={() => setShowCodigo(v => !v)} tabIndex={-1}>
+                      {showCodigo ? <EyeOff /> : <Eye />}
+                    </button>
+                  </>
+                ) : (
+                  <input
+                    type="text"
+                    placeholder="DNI"
+                    value={registerData.dni}
+                    onChange={e => setRegisterData({ ...registerData, dni: e.target.value })}
+                  />
+                )}
               </div>
               <div className="input-box">
                 <input type="email" placeholder="Correo electrónico" value={registerData.email} onChange={e => setRegisterData({ ...registerData, email: e.target.value })} required />
               </div>
               <div className="input-box">
-                <input type="password" placeholder="Contraseña" value={registerData.password} onChange={e => setRegisterData({ ...registerData, password: e.target.value })} required />
+                <input className="pass-input" type={showRegisterPass ? "text" : "password"} placeholder="Contraseña" value={registerData.password} onChange={e => setRegisterData({ ...registerData, password: e.target.value })} required />
+                <button type="button" className="eye-btn" onClick={() => setShowRegisterPass(v => !v)} tabIndex={-1}>
+                  {showRegisterPass ? <EyeOff /> : <Eye />}
+                </button>
               </div>
               <div className="input-box">
-                <input type="password" placeholder="Confirmar contraseña" value={registerData.confirmPassword} onChange={e => setRegisterData({ ...registerData, confirmPassword: e.target.value })} required />
+                <input className="pass-input" type={showConfirmPass ? "text" : "password"} placeholder="Confirmar contraseña" value={registerData.confirmPassword} onChange={e => setRegisterData({ ...registerData, confirmPassword: e.target.value })} required />
+                <button type="button" className="eye-btn" onClick={() => setShowConfirmPass(v => !v)} tabIndex={-1}>
+                  {showConfirmPass ? <EyeOff /> : <Eye />}
+                </button>
               </div>
               <div className="input-box">
                 <select aria-label="Rol de registro" value={registerData.rol} onChange={e => setRegisterData({ ...registerData, rol: e.target.value })}>
