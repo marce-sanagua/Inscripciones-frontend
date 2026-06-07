@@ -3,16 +3,14 @@ import { useEffect, useState } from "react";
 import { useAppStore } from "@/src/store";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { authHeaders, USERS_API, ACADEMIC_API } from "@/src/lib/api";
 
 type Usuario = { id: number; nombre: string; email?: string; rol?: string };
-
-const USERS_API = "http://localhost:3001";
 
 const colores: Record<string, string> = {
   admin: "#7c3aed",
   profesor: "#185FA5",
   alumno: "#16a34a",
-  student: "#16a34a",
 };
 
 export default function PageUsuarios() {
@@ -24,20 +22,53 @@ export default function PageUsuarios() {
 
   useEffect(() => {
     if (user?.rol !== "admin") { router.push("/dashboard"); return; }
-    fetch(`${USERS_API}/usuarios`)
+    fetch(`${USERS_API}/usuarios`, { headers: authHeaders() })
       .then(r => r.json())
       .then(data => { if (Array.isArray(data)) setUsuarios(data); })
       .finally(() => setLoading(false));
   }, []);
 
-  const porRol = (rol: string) => usuarios.filter(u => u.rol === rol || (rol === "alumno" && u.rol === "student")).length;
+  const porRol = (rol: string) => usuarios.filter(u => u.rol === rol).length;
 
-  const eliminarUsuario = async (id: number, nombre: string) => {
+  const eliminarUsuario = async (id: number, nombre: string, rol: string) => {
     if (id === user?.id) { toast.warning("No podés eliminarte a vos mismo"); return; }
+
+    // Validaciones según rol
+    if (rol === "alumno") {
+      try {
+        const res = await fetch(`${ACADEMIC_API}/inscripciones/usuarios/${id}/materias`, { headers: authHeaders() });
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          toast.warning(`No se puede eliminar: ${nombre} tiene ${data.length} materia${data.length !== 1 ? "s" : ""} inscripta${data.length !== 1 ? "s" : ""}`);
+          return;
+        }
+      } catch {
+        toast.warning("Error al verificar inscripciones");
+        return;
+      }
+    }
+
+    if (rol === "profesor") {
+      try {
+        const res = await fetch(`${ACADEMIC_API}/materias`, { headers: authHeaders() });
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          const materiasAsignadas = data.filter((m: { profesor_id: number }) => m.profesor_id === id);
+          if (materiasAsignadas.length > 0) {
+            toast.warning(`No se puede eliminar: ${nombre} tiene ${materiasAsignadas.length} materia${materiasAsignadas.length !== 1 ? "s" : ""} asignada${materiasAsignadas.length !== 1 ? "s" : ""}`);
+            return;
+          }
+        }
+      } catch {
+        toast.warning("Error al verificar materias");
+        return;
+      }
+    }
+
     if (!confirm(`¿Eliminar a "${nombre}"?`)) return;
     setEliminando(id);
     try {
-      const res = await fetch(`${USERS_API}/usuarios/${id}`, { method: "DELETE" });
+      const res = await fetch(`${USERS_API}/usuarios/${id}`, { method: "DELETE", headers: authHeaders() });
       if (res.ok) {
         toast.success("Usuario eliminado");
         setUsuarios(prev => prev.filter(u => u.id !== id));
@@ -83,13 +114,13 @@ export default function PageUsuarios() {
               </div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <span style={{ fontSize: "11px", padding: "3px 10px", borderRadius: "99px", background: colores[u.rol ?? "alumno"] ? `${colores[u.rol ?? "alumno"]}18` : "#f3f4f6", color: colores[u.rol ?? "alumno"] ?? "#6b7280", fontWeight: 500, textTransform: "capitalize" }}>
-                {u.rol === "student" ? "alumno" : (u.rol || "alumno")}
+              <span style={{ fontSize: "11px", padding: "3px 10px", borderRadius: "99px", background: `${colores[u.rol ?? "alumno"]}18`, color: colores[u.rol ?? "alumno"] ?? "#6b7280", fontWeight: 500, textTransform: "capitalize" }}>
+                {u.rol || "alumno"}
               </span>
               {u.rol !== "admin" && (
                 <button
                   type="button"
-                  onClick={() => eliminarUsuario(u.id, u.nombre)}
+                  onClick={() => eliminarUsuario(u.id, u.nombre, u.rol ?? "alumno")}
                   disabled={eliminando === u.id}
                   style={{ fontSize: "11px", padding: "3px 10px", borderRadius: "6px", background: "#fee2e2", color: "#dc2626", border: "1px solid #fecaca", cursor: "pointer", opacity: eliminando === u.id ? 0.5 : 1 }}
                 >

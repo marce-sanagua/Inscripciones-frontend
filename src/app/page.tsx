@@ -42,10 +42,10 @@ export default function Home() {
     setLoading(true);
     try {
       const { data } = await axios.post("http://localhost:3001/login", loginData);
-      const userData = data.user ?? data;
-      const token = data.token ?? String(userData.id);
+      const { token, user: userData } = data;
       setUser({ id: userData.id, rol: userData.rol, nombre: userData.nombre });
-      document.cookie = `token=${token}; path=/`;
+      document.cookie = `token=${token}; path=/; SameSite=Strict`;
+      localStorage.setItem("token", token);
       toast.success("Bienvenido!");
       router.push("/dashboard");
     } catch (err) {
@@ -74,19 +74,6 @@ export default function Home() {
       await axios.post("http://localhost:3001/usuarios/register", registerData);
       toast.success("¡Usuario registrado con éxito!");
       setActive(false);
-      try {
-        const mailRes = await fetch("/api/bienvenida", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: registerData.email, nombre: registerData.nombre }),
-        });
-        if (!mailRes.ok) {
-          const mailData = await mailRes.json();
-          console.error("Error email:", mailData);
-        }
-      } catch (mailErr) {
-        console.error("Error al enviar email:", mailErr);
-      }
     } catch (err) {
       const apiError = err as ApiError;
       const msg = apiError.response?.data?.message || apiError.response?.data?.error || "";

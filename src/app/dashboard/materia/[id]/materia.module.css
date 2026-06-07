@@ -430,6 +430,10 @@
     text-transform: uppercase;
     letter-spacing: 0.05em;
     border-bottom: 1px solid #e5e7eb;
+    
+}
+.tablaHeader span:nth-child(2) {
+    margin-left: -80px;
 }
 
 .tablaFila {
@@ -538,8 +542,8 @@
 }
 
 .notaGrande {
-    font-size: 56px;
-    font-weight: 800;
+    font-size: 24px;
+    font-weight: 700;
     color: #185FA5;
     line-height: 1;
     margin-bottom: 6px;

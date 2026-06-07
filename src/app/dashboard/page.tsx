@@ -3,21 +3,16 @@ import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useAppStore } from "@/src/store";
+import { authHeaders, USERS_API, ACADEMIC_API } from "@/src/lib/api";
 import styles from "./dashboard.module.css";
 
-type Usuario = { id: number; nombre: string; rol?: string };
+type Usuario = { id: number; nombre: string; rol?: string; email?: string };
 type Materia = { id: number; nombre: string; profesor_id: number | null };
 type Alumno = { id: number; nombre: string; email?: string };
 
-const USERS_API = "http://localhost:3001";
-const ACADEMIC_API = "http://localhost:4000";
-
-
 export default function Dashboard() {
   const { user } = useAppStore();
-
   if (!user) return null;
-
   if (user.rol === "alumno") return <VistaAlumno />;
   if (user.rol === "profesor") return <VistaProfesor />;
   return <VistaAdmin />;
@@ -34,9 +29,9 @@ function VistaAdmin() {
   useEffect(() => {
     const fetchData = async () => {
       const [usersResult, materiasResult, inscripcionesResult] = await Promise.allSettled([
-        fetch(`${USERS_API}/usuarios`).then(r => r.json()),
-        fetch(`${ACADEMIC_API}/materias`).then(r => r.json()),
-        fetch(`${ACADEMIC_API}/inscripciones/count`).then(r => r.json()),
+        fetch(`${USERS_API}/usuarios`, { headers: authHeaders() }).then(r => r.json()),
+        fetch(`${ACADEMIC_API}/materias`, { headers: authHeaders() }).then(r => r.json()),
+        fetch(`${ACADEMIC_API}/inscripciones/count`, { headers: authHeaders() }).then(r => r.json()),
       ]);
       const users: Usuario[] = usersResult.status === "fulfilled" && Array.isArray(usersResult.value) ? usersResult.value : [];
       const mats: Materia[] = materiasResult.status === "fulfilled" && Array.isArray(materiasResult.value) ? materiasResult.value : [];
@@ -82,6 +77,7 @@ function VistaAdmin() {
 
 function VistaAlumno() {
   const { user } = useAppStore();
+  const router = useRouter();
   const [todasMaterias, setTodasMaterias] = useState<Materia[]>([]);
   const [misMaterias, setMisMaterias] = useState<Materia[]>([]);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
@@ -92,9 +88,9 @@ function VistaAlumno() {
   useEffect(() => {
     const fetchData = async () => {
       const [todasRes, misRes, usersRes] = await Promise.allSettled([
-        fetch(`${ACADEMIC_API}/materias`).then(r => r.json()),
-        fetch(`${ACADEMIC_API}/inscripciones/usuarios/${user?.id}/materias`).then(r => r.json()),
-        fetch(`${USERS_API}/usuarios`).then(r => r.json()),
+        fetch(`${ACADEMIC_API}/materias`, { headers: authHeaders() }).then(r => r.json()),
+        fetch(`${ACADEMIC_API}/inscripciones/usuarios/${user?.id}/materias`, { headers: authHeaders() }).then(r => r.json()),
+        fetch(`${USERS_API}/usuarios`, { headers: authHeaders() }).then(r => r.json()),
       ]);
       if (todasRes.status === "fulfilled" && Array.isArray(todasRes.value)) setTodasMaterias(todasRes.value);
       if (misRes.status === "fulfilled" && Array.isArray(misRes.value)) setMisMaterias(misRes.value);
@@ -114,7 +110,7 @@ function VistaAlumno() {
     try {
       const res = await fetch(`${ACADEMIC_API}/inscripciones/materias/${materiaId}/inscripciones`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({ user_id: user?.id }),
       });
       const data = await res.json();
@@ -137,6 +133,7 @@ function VistaAlumno() {
     try {
       const res = await fetch(`${ACADEMIC_API}/inscripciones/materias/${materiaId}/inscripciones/${user?.id}`, {
         method: "DELETE",
+        headers: authHeaders(),
       });
       if (res.ok) {
         toast.success("Desinscripción exitosa");
@@ -161,15 +158,11 @@ function VistaAlumno() {
         <TarjetaStat numero={todasMaterias.length} label="Materias disponibles" />
         <TarjetaStat numero={misMaterias.length} label="Mis inscripciones" />
       </div>
-
       <div className={styles.grid2}>
         <TablaTarjeta titulo="Materias disponibles">
           {loading ? <FilaCargando /> : todasMaterias.map((m) => (
             <div key={m.id} className={styles.tableRowFlex}>
-              <div
-                className={styles.itemClickable}
-                onClick={() => yaInscrito(m.id) ? router.push(`/dashboard/materia/${m.id}`) : undefined}
-              >
+              <div className={styles.itemInfo}>
                 <div className={styles.itemTitle}>{m.nombre}</div>
                 {nombreProfesor(m.profesor_id) && (
                   <div className={styles.muted}>Prof. {nombreProfesor(m.profesor_id)}</div>
@@ -227,11 +220,11 @@ function VistaProfesor() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch(`${ACADEMIC_API}/profesor/materias/${user?.id}`);
+        const res = await fetch(`${ACADEMIC_API}/profesor/materias/${user?.id}`, { headers: authHeaders() });
         const data = await res.json();
         if (Array.isArray(data)) setMisMaterias(data);
       } catch {
-        // el servicio local no está disponible
+        // servicio no disponible
       } finally {
         setLoading(false);
       }
@@ -248,7 +241,7 @@ function VistaProfesor() {
     if (alumnosPorMateria[materiaId] !== undefined) return;
     setCargandoAlumnos(materiaId);
     try {
-      const res = await fetch(`${ACADEMIC_API}/profesor/materias/${materiaId}/alumnos`);
+      const res = await fetch(`${ACADEMIC_API}/profesor/materias/${materiaId}/alumnos`, { headers: authHeaders() });
       const data = await res.json();
       setAlumnosPorMateria(prev => ({ ...prev, [materiaId]: Array.isArray(data) ? data : [] }));
     } catch {
@@ -261,21 +254,21 @@ function VistaProfesor() {
   return (
     <div className={styles.container}>
       <Encabezado nombre={user?.nombre} subtitulo="Período lectivo 2026" />
-
       <div className={styles.grid3}>
         <TarjetaStat numero={misMaterias.length} label="Materias a cargo" />
       </div>
-
       <TablaTarjeta titulo="Mis materias">
         {loading ? <FilaCargando /> : misMaterias.length === 0 ? (
           <div className={styles.noData}>No tenés materias asignadas todavía</div>
         ) : misMaterias.map((m) => (
           <div key={m.id}>
             <div className={`${styles.tableRowFlex} ${styles.expandable}`}>
-              <div onClick={() => router.push(`/dashboard/materia/${m.id}`)} className={styles.itemClickable}>
+              <div className={styles.itemInfo}>
                 <div className={styles.itemTitle}>{m.nombre}</div>
                 {alumnosPorMateria[m.id] !== undefined && (
-                  <div className={styles.muted}>{alumnosPorMateria[m.id].length} alumno{alumnosPorMateria[m.id].length !== 1 ? "s" : ""} inscripto{alumnosPorMateria[m.id].length !== 1 ? "s" : ""}</div>
+                  <div className={styles.muted}>
+                    {alumnosPorMateria[m.id].length} alumno{alumnosPorMateria[m.id].length !== 1 ? "s" : ""} inscripto{alumnosPorMateria[m.id].length !== 1 ? "s" : ""}
+                  </div>
                 )}
               </div>
               <div className={styles.rowActions}>
@@ -283,11 +276,10 @@ function VistaProfesor() {
                   {expandida === m.id ? "Ocultar" : "Ver alumnos"}
                 </button>
                 <button type="button" className={styles.btnEnroll} onClick={() => router.push(`/dashboard/materia/${m.id}`)}>
-                  Ver aula
+                  Ver notas
                 </button>
               </div>
             </div>
-
             {expandida === m.id && (
               <div className={styles.detailsBox}>
                 {cargandoAlumnos === m.id ? (

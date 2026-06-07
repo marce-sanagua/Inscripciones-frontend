@@ -3,18 +3,10 @@ import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useAppStore } from "@/src/store";
 import { useRouter } from "next/navigation";
+import { authHeaders, USERS_API, ACADEMIC_API } from "@/src/lib/api";
 
 type Usuario = { id: number; nombre: string; rol?: string };
 type Materia = { id: number; nombre: string; profesor_id: number | null };
-
-const USERS_API = "http://localhost:3001";
-const ACADEMIC_API = "http://localhost:4000";
-
-function getCookie(name: string) {
-  const parts = `; ${document.cookie}`.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop()?.split(";").shift() ?? null;
-  return null;
-}
 
 export default function PageMaterias() {
   const { user } = useAppStore();
@@ -35,8 +27,8 @@ export default function PageMaterias() {
     if (user?.rol !== "admin") { router.push("/dashboard"); return; }
     const fetchData = async () => {
       const [usersRes, materiasRes] = await Promise.allSettled([
-        fetch(`${USERS_API}/usuarios`).then(r => r.json()),
-        fetch(`${ACADEMIC_API}/materias`).then(r => r.json()),
+        fetch(`${USERS_API}/usuarios`, { headers: authHeaders() }).then(r => r.json()),
+        fetch(`${ACADEMIC_API}/materias`, { headers: authHeaders() }).then(r => r.json()),
       ]);
       if (usersRes.status === "fulfilled" && Array.isArray(usersRes.value)) setUsuarios(usersRes.value);
       if (materiasRes.status === "fulfilled" && Array.isArray(materiasRes.value)) setMaterias(materiasRes.value);
@@ -49,10 +41,9 @@ export default function PageMaterias() {
     e.preventDefault();
     setCreando(true);
     try {
-      const token = getCookie("token");
       const res = await fetch(`${ACADEMIC_API}/admin/materias`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...(token && { Authorization: `Bearer ${token}` }) },
+        headers: authHeaders(),
         body: JSON.stringify({ nombre: nuevaMateria.nombre, profesor_id: nuevaMateria.profesor_id ? Number(nuevaMateria.profesor_id) : null }),
       });
       const data = await res.json();
@@ -73,10 +64,9 @@ export default function PageMaterias() {
     if (!profesorId) return;
     setAsignando(materiaId);
     try {
-      const token = getCookie("token");
       const res = await fetch(`${ACADEMIC_API}/admin/materias/${materiaId}/profesor`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json", ...(token && { Authorization: `Bearer ${token}` }) },
+        headers: authHeaders(),
         body: JSON.stringify({ profesor_id: Number(profesorId) }),
       });
       const data = await res.json();
@@ -94,10 +84,9 @@ export default function PageMaterias() {
     if (!confirm(`¿Eliminár "${nombre}"? También se borran todas sus inscripciones.`)) return;
     setEliminando(materiaId);
     try {
-      const token = getCookie("token");
       const res = await fetch(`${ACADEMIC_API}/admin/materias/${materiaId}`, {
         method: "DELETE",
-        headers: { ...(token && { Authorization: `Bearer ${token}` }) },
+        headers: authHeaders(),
       });
       if (res.ok) {
         toast.success("Materia eliminada");

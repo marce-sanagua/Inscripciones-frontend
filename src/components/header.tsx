@@ -15,20 +15,15 @@ export const Header = ({ children }: { children: React.ReactNode }) => {
   };
 
   const menuPorRol: Record<string, { label: string; href: string }[]> = {
-    admin: [
-      { label: "Panel principal", href: "/dashboard" },
-      { label: "Usuarios", href: "/dashboard/usuarios" },
-      { label: "Materias", href: "/dashboard/materias" },
-      { label: "Inscripciones", href: "/dashboard/inscripciones" },
-    ],
-    profesor: [
-      { label: "Mis materias", href: "/dashboard" },
-    ],
-    alumno: [
-      { label: "Materias", href: "/dashboard" },
-      { label: "Mis inscripciones", href: "/dashboard" },
-    ],
-  };
+  admin: [
+    { label: "Panel principal", href: "/dashboard" },
+    { label: "Usuarios", href: "/dashboard/usuarios" },
+    { label: "Materias", href: "/dashboard/materias" },
+    { label: "Inscripciones", href: "/dashboard/inscripciones" },
+  ],
+  profesor: [],
+  alumno: [],
+};
 
   const topBarPorRol: Record<string, string> = {
     admin: "Panel de administración",
