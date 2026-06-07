@@ -58,6 +58,19 @@ export default function DetalleMateria() {
     if (id) fetchData();
   }, [id]);
 
+  useEffect(() => {
+    if (calificaciones.length === 0) return;
+    const inicial: Record<number, { parcial1: string; parcial2: string; comentario: string }> = {};
+    calificaciones.forEach(c => {
+      inicial[c.user_id] = {
+        parcial1: c.parcial1 !== undefined && c.parcial1 !== null ? String(c.parcial1) : "",
+        parcial2: c.parcial2 !== undefined && c.parcial2 !== null ? String(c.parcial2) : "",
+        comentario: c.comentario ?? "",
+      };
+    });
+    setNotaForm(inicial);
+  }, [calificaciones]);
+
   const calcularPromedio = (p1?: number, p2?: number) => {
     const n1 = p1 !== undefined && p1 !== null ? Number(p1) : null;
     const n2 = p2 !== undefined && p2 !== null ? Number(p2) : null;
@@ -90,7 +103,6 @@ export default function DetalleMateria() {
         if (existe) return prev.map(c => c.user_id === alumnoId ? nueva : c);
         return [...prev, nueva];
       });
-      setNotaForm(prev => ({ ...prev, [alumnoId]: { parcial1: "", parcial2: "", comentario: "" } }));
     } catch { toast.warning("Error al conectar"); }
     finally { setGuardandoNota(null); }
   };
@@ -145,7 +157,7 @@ export default function DetalleMateria() {
             )}
             {miCalif?.nota !== undefined && miCalif.nota !== null && Number(miCalif.nota) < 7 && (
               <div style={{ marginTop: "12px", padding: "8px 16px", background: "#fee2e2", color: "#dc2626", borderRadius: "8px", fontSize: "13px", textAlign: "center" }}>
-                 Debés rendir examen final
+               Debés rendir examen final
               </div>
             )}
             {miCalif?.comentario && (
@@ -162,7 +174,7 @@ export default function DetalleMateria() {
               <div className={styles.tablaHeader}>
                 <span>Alumno</span>
                 <span>Notas actuales</span>
-                <span>Cargar notas</span>
+                <span>Cargar / Editar notas</span>
               </div>
               {alumnos.map(uid => {
                 const calif = getCalif(uid);
@@ -175,29 +187,29 @@ export default function DetalleMateria() {
                       <div className={styles.avatarSmall}>{alumno.nombre.charAt(0).toUpperCase()}</div>
                       {alumno.nombre}
                     </div>
-                    <div style={{ fontSize: "12px", display: "flex", flexDirection: "column", gap: "4px" }}>
-  {calif ? (
-    <>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: "8px" }}>
-        <span style={{ color: "#6b7280" }}>Parcial 1:</span>
-        <span style={{ fontWeight: 500 }}>{calif.parcial1 !== undefined && calif.parcial1 !== null ? Number(calif.parcial1).toFixed(2) : "-"}</span>
-      </div>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: "8px" }}>
-        <span style={{ color: "#6b7280" }}>Parcial 2:</span>
-        <span style={{ fontWeight: 500 }}>{calif.parcial2 !== undefined && calif.parcial2 !== null ? Number(calif.parcial2).toFixed(2) : "-"}</span>
-      </div>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: "8px", borderTop: "1px solid #e5e7eb", paddingTop: "4px" }}>
-        <span style={{ color: "#6b7280" }}>Final:</span>
-        <span style={{ fontWeight: 600, color: promedio && !isNaN(Number(promedio)) && Number(promedio) < 7 ? "#dc2626" : "#16a34a" }}>
-          {promedio && !isNaN(Number(promedio)) ? promedio : "-"}
-          {promedio && !isNaN(Number(promedio)) && Number(promedio) < 7 && " "}
-        </span>
-      </div>
-    </>
-  ) : (
-    <span className={styles.sinNota}>Sin notas</span>
-  )}
-</div>
+                    <div style={{ fontSize: "12px", display: "flex", flexDirection: "column", gap: "4px", minWidth: "110px" }}>
+                      {calif ? (
+                        <>
+                          <div style={{ display: "flex", justifyContent: "space-between", gap: "4px" }}>
+                            <span style={{ color: "#6b7280" }}>Parcial 1:</span>
+                            <span style={{ fontWeight: 500 }}>{calif.parcial1 !== undefined && calif.parcial1 !== null ? Number(calif.parcial1).toFixed(2) : "-"}</span>
+                          </div>
+                          <div style={{ display: "flex", justifyContent: "space-between", gap: "4px" }}>
+                            <span style={{ color: "#6b7280" }}>Parcial 2:</span>
+                            <span style={{ fontWeight: 500 }}>{calif.parcial2 !== undefined && calif.parcial2 !== null ? Number(calif.parcial2).toFixed(2) : "-"}</span>
+                          </div>
+                          <div style={{ display: "flex", justifyContent: "space-between", gap: "4px", borderTop: "1px solid #e5e7eb", paddingTop: "4px" }}>
+                            <span style={{ color: "#6b7280" }}>Final:</span>
+                            <span style={{ fontWeight: 600, color: promedio && !isNaN(Number(promedio)) && Number(promedio) < 7 ? "#dc2626" : "#16a34a" }}>
+                              {promedio && !isNaN(Number(promedio)) ? promedio : "-"}
+                              {promedio && !isNaN(Number(promedio)) && Number(promedio) < 7 && ""}
+                            </span>
+                          </div>
+                        </>
+                      ) : (
+                        <span className={styles.sinNota}>Sin notas</span>
+                      )}
+                    </div>
                     <div className={styles.notaForm}>
                       <input
                         type="number" min="0" max="10" step="0.1" placeholder="P1"
@@ -218,8 +230,26 @@ export default function DetalleMateria() {
                         className={styles.notaInputWide}
                       />
                       <button type="button" onClick={() => guardarNota(uid)} disabled={guardandoNota === uid} className={styles.btnGuardarNota}>
-                        {guardandoNota === uid ? "..." : "Guardar"}
+                        {guardandoNota === uid ? "..." : calif ? "Actualizar" : "Guardar"}
                       </button>
+                      {calif && (
+  <button
+    type="button"
+    onClick={async () => {
+      if (!confirm("¿Borrar las notas de este alumno?")) return;
+      await fetch(`${ACADEMIC_API}/materias/${id}/calificaciones/${uid}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+      });
+      setCalificaciones(prev => prev.filter(c => c.user_id !== uid));
+      setNotaForm(prev => ({ ...prev, [uid]: { parcial1: "", parcial2: "", comentario: "" } }));
+      toast.success("Notas eliminadas");
+    }}
+    style={{ fontSize: "11px", padding: "3px 10px", borderRadius: "6px", background: "#fee2e2", color: "#dc2626", border: "1px solid #fecaca", cursor: "pointer" }}
+  >
+    Limpiar
+  </button>
+)}
                     </div>
                   </div>
                 );

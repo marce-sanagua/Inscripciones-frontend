@@ -19,6 +19,7 @@ export default function PageMaterias() {
   const [creando, setCreando] = useState(false);
   const [seleccion, setSeleccion] = useState<Record<number, string>>({});
   const [asignando, setAsignando] = useState<number | null>(null);
+  const [desasignando, setDesasignando] = useState<number | null>(null);
   const [eliminando, setEliminando] = useState<number | null>(null);
 
   const profesores = usuarios.filter(u => u.rol === "profesor");
@@ -78,6 +79,25 @@ export default function PageMaterias() {
       }
     } catch { toast.warning("Error al conectar con el servidor"); }
     finally { setAsignando(null); }
+  };
+
+  const desasignarProfesor = async (materiaId: number) => {
+    if (!confirm("¿Desasignar el profesor de esta materia?")) return;
+    setDesasignando(materiaId);
+    try {
+      const res = await fetch(`${ACADEMIC_API}/admin/materias/${materiaId}/desasignar`, {
+        method: "PUT",
+        headers: authHeaders(),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.warning(data.message || "No se pudo desasignar");
+      } else {
+        toast.success("Profesor desasignado!");
+        setMaterias(prev => prev.map(m => m.id === materiaId ? { ...m, profesor_id: null } : m));
+      }
+    } catch { toast.warning("Error al conectar con el servidor"); }
+    finally { setDesasignando(null); }
   };
 
   const eliminarMateria = async (materiaId: number, nombre: string) => {
@@ -174,7 +194,7 @@ export default function PageMaterias() {
                 {profe && <div style={{ fontSize: "11px", color: "#6b7280", marginTop: "2px" }}>Profesor: {profe}</div>}
               </div>
               <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                {!profe && (
+                {!profe ? (
                   <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
                     <select
                       aria-label="Asignar profesor"
@@ -194,9 +214,18 @@ export default function PageMaterias() {
                       {asignando === m.id ? "..." : "Asignar"}
                     </button>
                   </div>
-                )}
-                {profe && (
-                  <span style={{ fontSize: "11px", color: "#16a34a", background: "#dcfce7", padding: "2px 8px", borderRadius: "99px", whiteSpace: "nowrap" }}>Asignado</span>
+                ) : (
+                  <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                    <span style={{ fontSize: "11px", color: "#16a34a", background: "#dcfce7", padding: "2px 8px", borderRadius: "99px", whiteSpace: "nowrap" }}>Asignado</span>
+                    <button
+                      type="button"
+                      onClick={() => desasignarProfesor(m.id)}
+                      disabled={desasignando === m.id}
+                      style={{ fontSize: "11px", padding: "3px 10px", borderRadius: "6px", background: "#fef3c7", color: "#d97706", border: "1px solid #fde68a", cursor: "pointer", opacity: desasignando === m.id ? 0.5 : 1 }}
+                    >
+                      {desasignando === m.id ? "..." : "Desasignar"}
+                    </button>
+                  </div>
                 )}
                 <button
                   type="button"

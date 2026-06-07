@@ -19,6 +19,7 @@ export default function PageUsuarios() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
   const [eliminando, setEliminando] = useState<number | null>(null);
+  const [filtro, setFiltro] = useState<string>("todos");
 
   useEffect(() => {
     if (user?.rol !== "admin") { router.push("/dashboard"); return; }
@@ -30,10 +31,13 @@ export default function PageUsuarios() {
 
   const porRol = (rol: string) => usuarios.filter(u => u.rol === rol).length;
 
+  const usuariosFiltrados = usuarios
+    .filter(u => filtro === "todos" || u.rol === filtro)
+    .sort((a, b) => a.nombre.localeCompare(b.nombre));
+
   const eliminarUsuario = async (id: number, nombre: string, rol: string) => {
     if (id === user?.id) { toast.warning("No podés eliminarte a vos mismo"); return; }
 
-    // Validaciones según rol
     if (rol === "alumno") {
       try {
         const res = await fetch(`${ACADEMIC_API}/inscripciones/usuarios/${id}/materias`, { headers: authHeaders() });
@@ -87,22 +91,38 @@ export default function PageUsuarios() {
         <p style={{ fontSize: "13px", color: "#6b7280" }}>Todos los usuarios registrados en la plataforma</p>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1rem", marginBottom: "1.5rem" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1rem", marginBottom: "1.5rem" }}>
+        <div
+          onClick={() => setFiltro("todos")}
+          style={{ background: filtro === "todos" ? "#111827" : "#fff", borderRadius: "12px", padding: "1.25rem", border: filtro === "todos" ? "2px solid #111827" : "1px solid #e5e7eb", cursor: "pointer" }}
+        >
+          <div style={{ fontSize: "28px", fontWeight: 600, color: filtro === "todos" ? "#fff" : "#111827" }}>{loading ? "-" : usuarios.length}</div>
+          <div style={{ fontSize: "12px", color: filtro === "todos" ? "#d1d5db" : "#6b7280", marginTop: "4px" }}>Todos</div>
+        </div>
         {["admin", "profesor", "alumno"].map(rol => (
-          <div key={rol} style={{ background: "#fff", borderRadius: "12px", padding: "1.25rem", border: "1px solid #e5e7eb" }}>
-            <div style={{ fontSize: "28px", fontWeight: 600, color: "#111827" }}>{loading ? "-" : porRol(rol)}</div>
-            <div style={{ fontSize: "12px", color: "#6b7280", marginTop: "4px", textTransform: "capitalize" }}>{rol}s</div>
+          <div
+            key={rol}
+            onClick={() => setFiltro(rol)}
+            style={{ background: filtro === rol ? colores[rol] : "#fff", borderRadius: "12px", padding: "1.25rem", border: filtro === rol ? `2px solid ${colores[rol]}` : "1px solid #e5e7eb", cursor: "pointer" }}
+          >
+            <div style={{ fontSize: "28px", fontWeight: 600, color: filtro === rol ? "#fff" : "#111827" }}>{loading ? "-" : porRol(rol)}</div>
+            <div style={{ fontSize: "12px", color: filtro === rol ? "#e0f2fe" : "#6b7280", marginTop: "4px", textTransform: "capitalize" }}>{rol}s</div>
           </div>
         ))}
       </div>
 
       <div style={{ background: "#fff", borderRadius: "12px", border: "1px solid #e5e7eb", overflow: "hidden" }}>
         <div style={{ padding: "1rem 1.25rem", borderBottom: "1px solid #e5e7eb" }}>
-          <h2 style={{ fontSize: "14px", fontWeight: 600, color: "#111827" }}>Lista de usuarios</h2>
+          <h2 style={{ fontSize: "14px", fontWeight: 600, color: "#111827" }}>
+            {filtro === "todos" ? "Lista de usuarios" : `${filtro.charAt(0).toUpperCase() + filtro.slice(1)}s`}
+            <span style={{ fontSize: "12px", color: "#9ca3af", fontWeight: 400, marginLeft: "8px" }}>({usuariosFiltrados.length})</span>
+          </h2>
         </div>
         {loading ? (
           <div style={{ padding: "1rem", fontSize: "13px", color: "#6b7280" }}>Cargando...</div>
-        ) : usuarios.map(u => (
+        ) : usuariosFiltrados.length === 0 ? (
+          <div style={{ padding: "1rem", fontSize: "13px", color: "#9ca3af" }}>No hay usuarios en esta categoría</div>
+        ) : usuariosFiltrados.map(u => (
           <div key={u.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 1.25rem", borderBottom: "1px solid #f9fafb" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
               <div style={{ width: "34px", height: "34px", borderRadius: "50%", background: colores[u.rol ?? "alumno"] ?? "#185FA5", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: "13px", fontWeight: 600, flexShrink: 0 }}>
