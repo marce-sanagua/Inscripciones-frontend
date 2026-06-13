@@ -38,51 +38,55 @@ export default function Home() {
   const [showCodigo, setShowCodigo] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const { data } = await axios.post("http://localhost:3001/login", loginData);
-      const { token, user: userData } = data;
-      setUser({ id: userData.id, rol: userData.rol, nombre: userData.nombre });
-      document.cookie = `token=${token}; path=/; SameSite=Strict`;
-      localStorage.setItem("token", token);
-      toast.success("Bienvenido!");
-      router.push("/dashboard");
-    } catch (err) {
-      const apiError = err as ApiError;
-      toast.warning(apiError.response?.data?.message || apiError.response?.data?.error || "Error al iniciar sesión");
-    } finally {
-      setLoading(false);
-    }
-  };
+  e.preventDefault();
+  setLoading(true);
+  try {
+    const { data } = await axios.post("http://localhost:3001/acceso", loginData);
+    const { token, user: userData } = data;
+    setUser({ id: userData.id, rol: userData.rol, nombre: userData.nombre });
+    document.cookie = `token=${token}; path=/; SameSite=Strict`;
+    localStorage.setItem("token", token);
+    toast.success("Bienvenido!");
+    router.push("/dashboard");
+  } catch (err) {
+    const apiError = err as ApiError;
+    toast.warning(apiError.response?.data?.message || "Error al iniciar sesión");
+  } finally {
+    setLoading(false);
+  }
+};
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (registerData.password !== registerData.confirmPassword) {
-      return toast.warning("Las contraseñas no coinciden");
+const handleRegister = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (registerData.password !== registerData.confirmPassword) {
+    return toast.warning("Las contraseñas no coinciden");
+  }
+  if (registerData.rol === "profesor") {
+    if (!registerData.codigoProfesor) {
+      return toast.warning("Ingresá el código de acceso para profesores");
     }
-    if (registerData.rol === "profesor") {
-      if (!registerData.codigoProfesor) {
-        return toast.warning("Ingresá el código de acceso para profesores");
-      }
-      if (registerData.codigoProfesor !== "PROF2026") {
-        return toast.warning("Código incorrecto");
-      }
+    if (registerData.codigoProfesor !== "PROF2026") {
+      return toast.warning("Código incorrecto");
     }
-    setLoading(true);
-    try {
-      await axios.post("http://localhost:3001/usuarios/register", registerData);
-      toast.success("¡Usuario registrado con éxito!");
-      setActive(false);
-    } catch (err) {
-      const apiError = err as ApiError;
-      const msg = apiError.response?.data?.message || apiError.response?.data?.error || "";
-      const emailDuplicado = msg.toLowerCase().includes("email") || msg.toLowerCase().includes("existe") || msg.toLowerCase().includes("already") || msg.toLowerCase().includes("duplicate");
-      toast.warning(emailDuplicado ? "Ya existe una cuenta con ese email" : msg || "Error al registrarse");
-    } finally {
-      setLoading(false);
-    }
-  };
+  }
+  setLoading(true);
+  try {
+    const { data } = await axios.post("http://localhost:3001/usuarios", registerData);
+    const { token, user: userData } = data;
+    setUser({ id: userData.id, rol: userData.rol, nombre: userData.nombre });
+    document.cookie = `token=${token}; path=/; SameSite=Strict`;
+    localStorage.setItem("token", token);
+    toast.success("¡Bienvenido!");
+    router.push("/dashboard");
+  } catch (err) {
+    const apiError = err as ApiError;
+    const msg = apiError.response?.data?.message || apiError.response?.data?.error || "";
+    const emailDuplicado = msg.toLowerCase().includes("email") || msg.toLowerCase().includes("existe") || msg.toLowerCase().includes("already") || msg.toLowerCase().includes("duplicate");
+    toast.warning(emailDuplicado ? "Ya existe una cuenta con ese email" : msg || "Error al registrarse");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <>
