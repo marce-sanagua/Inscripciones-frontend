@@ -1,7 +1,8 @@
-const USERS_API = process.env.NEXT_PUBLIC_USERS_API || "http://localhost:3001";
-const ACADEMIC_API = process.env.NEXT_PUBLIC_ACADEMIC_API || "http://localhost:4000";
+const USERS_API = process.env.NEXT_PUBLIC_USERS_API;
+const ACADEMIC_API = process.env.NEXT_PUBLIC_ACADEMIC_API;
 
 export { USERS_API, ACADEMIC_API };
+
 
 export function authHeaders() {
   const token = localStorage.getItem("token");

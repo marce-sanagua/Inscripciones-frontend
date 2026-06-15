@@ -40,7 +40,9 @@ export const LoginForm = ({
       return setError("Todos los campos son obligatorios");
     }
     try {
-      const { data } = await axios.post("http://localhost:4000/api/auth/login", formData);
+      const { data } = await axios.post(
+  `${process.env.NEXT_PUBLIC_ACADEMIC_API}/api/auth/login`,
+  formData);
       setUser(data.user);
       document.cookie = `token=${data.user.id}; path=/`;
       toast.success("Bienvenido!");

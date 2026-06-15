@@ -69,7 +69,9 @@ export const RegisterForm = ({
       return;
     }
     try {
-      const { data } = await axios.post("http://localhost:4000/api/auth/register", formData);
+      const { data } = await axios.post(
+  `${process.env.NEXT_PUBLIC_ACADEMIC_API}/api/auth/register`,
+  formData);
       setFormData({ dni: "", email: "", password: "", confirmPassword: "", rol: "administrador" });
       toast.success("¡Usuario registrado con éxito!");
       return setFormState("login");

@@ -41,7 +41,7 @@ export default function Home() {
   e.preventDefault();
   setLoading(true);
   try {
-    const { data } = await axios.post("http://localhost:3001/acceso", loginData);
+    const { data } = await axios.post("https://users-service-0b3y.onrender.com/acceso", loginData);
     const { token, user: userData } = data;
     setUser({ id: userData.id, rol: userData.rol, nombre: userData.nombre });
     document.cookie = `token=${token}; path=/; SameSite=Strict`;
@@ -71,7 +71,7 @@ const handleRegister = async (e: React.FormEvent) => {
   }
   setLoading(true);
   try {
-    const { data } = await axios.post("http://localhost:3001/usuarios", registerData);
+    const { data } = await axios.post("https://users-service-0b3y.onrender.com/usuarios", registerData);
     const { token, user: userData } = data;
     setUser({ id: userData.id, rol: userData.rol, nombre: userData.nombre });
     document.cookie = `token=${token}; path=/; SameSite=Strict`;
