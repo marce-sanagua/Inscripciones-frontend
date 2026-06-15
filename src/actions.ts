@@ -22,7 +22,9 @@ async function axiosWithAuth(
   });
 }
 
-// 🔐 AUTH (USERS SERVICE)
+/* =========================
+   🔐 AUTH (USERS SERVICE)
+========================= */
 
 export async function register(body: {
   dni: string;
@@ -33,7 +35,7 @@ export async function register(body: {
 }) {
   try {
     const { data } = await axiosWithAuth(
-      `${USERS_API}/api/auth/register`,
+      `${USERS_API}/auth/register`,
       "post",
       body
     );
@@ -52,7 +54,7 @@ export async function loginAction(formData: {
 }) {
   try {
     const { data } = await axiosWithAuth(
-      `${USERS_API}/api/auth/login`,
+      `${USERS_API}/auth/login`,
       "post",
       formData
     );
@@ -61,7 +63,7 @@ export async function loginAction(formData: {
       const cookieStore = await cookies();
       cookieStore.set("token", data.token, {
         httpOnly: true,
-        secure: true, // 🔥 en producción SIEMPRE true
+        secure: true,
         sameSite: "lax",
         path: "/",
       });
@@ -88,12 +90,14 @@ export async function logoutServer() {
   return { ok: true };
 }
 
-// 📚 MATERIAS (ACADEMIC SERVICE)
+/* =========================
+   📚 MATERIAS
+========================= */
 
 export async function obtenerMaterias() {
   try {
     const { data } = await axiosWithAuth(
-      `${ACADEMIC_API}/api/materias`,
+      `${ACADEMIC_API}/materias`,
       "get"
     );
 
@@ -105,34 +109,22 @@ export async function obtenerMaterias() {
   }
 }
 
-export async function obtenerProfesionales() {
-  try {
-    const { data } = await axiosWithAuth(
-      `${ACADEMIC_API}/api/profesionales`,
-      "get"
-    );
-
-    return data;
-  } catch (error: any) {
-    return {
-      error: error.response?.data?.message || "Error al obtener profesionales",
-    };
-  }
-}
-
 export async function crearMateria(body: {
   id_profesor: number;
   descripcion: string;
 }) {
   try {
     const { data } = await axiosWithAuth(
-      `${ACADEMIC_API}/api/materias`,
+      `${ACADEMIC_API}/materias`,
       "post",
       body
     );
+
     return data;
   } catch (error: any) {
-    return { error: error.response?.data?.message || "Error al crear materia" };
+    return {
+      error: error.response?.data?.message || "Error al crear materia",
+    };
   }
 }
 
@@ -145,10 +137,11 @@ export async function editarMateria({
 }) {
   try {
     const { data } = await axiosWithAuth(
-      `${ACADEMIC_API}/api/materias/${id}`,
+      `${ACADEMIC_API}/materias/${id}`,
       "put",
       body
     );
+
     return data;
   } catch (error: any) {
     return {
@@ -160,9 +153,10 @@ export async function editarMateria({
 export async function eliminarMateria(id: number) {
   try {
     const { data } = await axiosWithAuth(
-      `${ACADEMIC_API}/api/materias/${id}`,
+      `${ACADEMIC_API}/materias/${id}`,
       "delete"
     );
+
     return data;
   } catch (error: any) {
     return {
@@ -171,13 +165,15 @@ export async function eliminarMateria(id: number) {
   }
 }
 
-// 👨‍🎓 ALUMNOS
+/* =========================
+   👨‍🎓 ALUMNOS
+========================= */
 
 export async function obtenerAlumnos() {
   try {
     const {
       data: { alumnos },
-    } = await axiosWithAuth(`${ACADEMIC_API}/api/alumno`, "get");
+    } = await axiosWithAuth(`${ACADEMIC_API}/alumno`, "get");
 
     return alumnos;
   } catch (error: any) {
@@ -190,7 +186,7 @@ export async function obtenerAlumnos() {
 export async function editeEmail(body: { dni: string; email: string }) {
   try {
     const { data } = await axiosWithAuth(
-      `${ACADEMIC_API}/api/alumno/${body.dni}`,
+      `${ACADEMIC_API}/alumno/${body.dni}`,
       "put",
       body
     );
@@ -198,22 +194,23 @@ export async function editeEmail(body: { dni: string; email: string }) {
     return data;
   } catch (error: any) {
     return {
-      error:
-        error.response?.data?.message ||
-        "Error al editar el email",
+      error: error.response?.data?.message || "Error al editar el email",
     };
   }
 }
 
-// 📝 INSCRIPCIONES
+/* =========================
+   📝 INSCRIPCIONES
+========================= */
 
 export async function obtenerInscripcionAlumno(dni: string) {
   try {
     const DNI = Number(dni);
+
     const {
       data: { inscripciones },
     } = await axiosWithAuth(
-      `${ACADEMIC_API}/api/inscripciones/alumno/${DNI}`,
+      `${ACADEMIC_API}/inscripciones/alumno/${DNI}`,
       "get"
     );
 
@@ -233,10 +230,11 @@ export async function crearInscripcion(body: {
 }) {
   try {
     const { data } = await axiosWithAuth(
-      `${ACADEMIC_API}/api/inscripciones`,
+      `${ACADEMIC_API}/inscripciones`,
       "post",
       body
     );
+
     return data;
   } catch (error: any) {
     return {
@@ -251,10 +249,11 @@ export async function editartEstadoInscripcion(body: {
 }) {
   try {
     const { data } = await axiosWithAuth(
-      `${ACADEMIC_API}/api/inscripciones/aprobar`,
+      `${ACADEMIC_API}/inscripciones/aprobar`,
       "post",
       body
     );
+
     return data;
   } catch (error: any) {
     return {
@@ -266,7 +265,7 @@ export async function editartEstadoInscripcion(body: {
 export async function eliminarInscripcion(id_inscripcion: number) {
   try {
     const { data } = await axiosWithAuth(
-      `${ACADEMIC_API}/api/inscripciones/${id_inscripcion}`,
+      `${ACADEMIC_API}/inscripciones/${id_inscripcion}`,
       "delete"
     );
 
