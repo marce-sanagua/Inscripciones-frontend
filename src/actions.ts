@@ -3,6 +3,9 @@
 import axios from "axios";
 import { cookies } from "next/headers";
 
+const USERS_API = process.env.NEXT_PUBLIC_USERS_API!;
+const ACADEMIC_API = process.env.NEXT_PUBLIC_ACADEMIC_API!;
+
 async function axiosWithAuth(
   url: string,
   method: "get" | "post" | "put" | "delete",
@@ -19,6 +22,8 @@ async function axiosWithAuth(
   });
 }
 
+// 🔐 AUTH (USERS SERVICE)
+
 export async function register(body: {
   dni: string;
   email: string;
@@ -28,7 +33,7 @@ export async function register(body: {
 }) {
   try {
     const { data } = await axiosWithAuth(
-      "http://localhost:3000/api/auth/register",
+      `${USERS_API}/api/auth/register`,
       "post",
       body
     );
@@ -47,7 +52,7 @@ export async function loginAction(formData: {
 }) {
   try {
     const { data } = await axiosWithAuth(
-      "http://localhost:3000/api/auth/login",
+      `${USERS_API}/api/auth/login`,
       "post",
       formData
     );
@@ -56,7 +61,7 @@ export async function loginAction(formData: {
       const cookieStore = await cookies();
       cookieStore.set("token", data.token, {
         httpOnly: true,
-        secure: false,
+        secure: true, // 🔥 en producción SIEMPRE true
         sameSite: "lax",
         path: "/",
       });
@@ -83,17 +88,19 @@ export async function logoutServer() {
   return { ok: true };
 }
 
+// 📚 MATERIAS (ACADEMIC SERVICE)
+
 export async function obtenerMaterias() {
   try {
     const { data } = await axiosWithAuth(
-      "http://localhost:3000/api/materias",
+      `${ACADEMIC_API}/api/materias`,
       "get"
     );
 
     return data;
   } catch (error: any) {
     return {
-      error: error.response?.data?.message || "Error al iniciar sesión",
+      error: error.response?.data?.message || "Error al obtener materias",
     };
   }
 }
@@ -101,14 +108,14 @@ export async function obtenerMaterias() {
 export async function obtenerProfesionales() {
   try {
     const { data } = await axiosWithAuth(
-      "http://localhost:3000/api/profesionales",
+      `${ACADEMIC_API}/api/profesionales`,
       "get"
     );
 
     return data;
   } catch (error: any) {
     return {
-      error: error.response?.data?.message || "Error al iniciar sesión",
+      error: error.response?.data?.message || "Error al obtener profesionales",
     };
   }
 }
@@ -119,7 +126,7 @@ export async function crearMateria(body: {
 }) {
   try {
     const { data } = await axiosWithAuth(
-      "http://localhost:3000/api/materias",
+      `${ACADEMIC_API}/api/materias`,
       "post",
       body
     );
@@ -138,7 +145,7 @@ export async function editarMateria({
 }) {
   try {
     const { data } = await axiosWithAuth(
-      `http://localhost:3000/api/materias/${id}`,
+      `${ACADEMIC_API}/api/materias/${id}`,
       "put",
       body
     );
@@ -153,7 +160,7 @@ export async function editarMateria({
 export async function eliminarMateria(id: number) {
   try {
     const { data } = await axiosWithAuth(
-      `http://localhost:3000/api/materias/${id}`,
+      `${ACADEMIC_API}/api/materias/${id}`,
       "delete"
     );
     return data;
@@ -163,19 +170,19 @@ export async function eliminarMateria(id: number) {
     };
   }
 }
+
+// 👨‍🎓 ALUMNOS
+
 export async function obtenerAlumnos() {
   try {
     const {
       data: { alumnos },
-    } = await axiosWithAuth(
-      "http://localhost:3000/api/alumno",
-      "get"
-    );
+    } = await axiosWithAuth(`${ACADEMIC_API}/api/alumno`, "get");
 
     return alumnos;
   } catch (error: any) {
     return {
-      error: error.response?.data?.message || "Error al eliminar materia",
+      error: error.response?.data?.message || "Error al obtener alumnos",
     };
   }
 }
@@ -183,7 +190,7 @@ export async function obtenerAlumnos() {
 export async function editeEmail(body: { dni: string; email: string }) {
   try {
     const { data } = await axiosWithAuth(
-      `http://localhost:3000/api/alumno/${body.dni}`,
+      `${ACADEMIC_API}/api/alumno/${body.dni}`,
       "put",
       body
     );
@@ -193,10 +200,12 @@ export async function editeEmail(body: { dni: string; email: string }) {
     return {
       error:
         error.response?.data?.message ||
-        "Error al registrar al editar el email",
+        "Error al editar el email",
     };
   }
 }
+
+// 📝 INSCRIPCIONES
 
 export async function obtenerInscripcionAlumno(dni: string) {
   try {
@@ -204,14 +213,14 @@ export async function obtenerInscripcionAlumno(dni: string) {
     const {
       data: { inscripciones },
     } = await axiosWithAuth(
-      `http://localhost:3000/api/inscripciones/alumno/${DNI}`,
+      `${ACADEMIC_API}/api/inscripciones/alumno/${DNI}`,
       "get"
     );
 
     return inscripciones;
   } catch (error: any) {
     return {
-      error: error.response?.data?.message || "Error al crear incripcion",
+      error: error.response?.data?.message || "Error al obtener inscripciones",
     };
   }
 }
@@ -224,7 +233,7 @@ export async function crearInscripcion(body: {
 }) {
   try {
     const { data } = await axiosWithAuth(
-      "http://localhost:3000/api/inscripciones",
+      `${ACADEMIC_API}/api/inscripciones`,
       "post",
       body
     );
@@ -242,28 +251,29 @@ export async function editartEstadoInscripcion(body: {
 }) {
   try {
     const { data } = await axiosWithAuth(
-      "http://localhost:3000/api/inscripciones/aprobar",
+      `${ACADEMIC_API}/api/inscripciones/aprobar`,
       "post",
       body
     );
     return data;
   } catch (error: any) {
     return {
-      error: error.response?.data?.message || "Error al actualizar el estado",
+      error: error.response?.data?.message || "Error al actualizar estado",
     };
   }
 }
+
 export async function eliminarInscripcion(id_inscripcion: number) {
   try {
     const { data } = await axiosWithAuth(
-      `http://localhost:3000/api/inscripciones/${id_inscripcion}`,
+      `${ACADEMIC_API}/api/inscripciones/${id_inscripcion}`,
       "delete"
     );
 
     return data;
   } catch (error: any) {
     return {
-      error: error.response?.data?.message || "Error al eliminar la incripcion",
+      error: error.response?.data?.message || "Error al eliminar inscripción",
     };
   }
 }
