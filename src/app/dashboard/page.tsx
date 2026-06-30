@@ -7,7 +7,7 @@ import { authHeaders, USERS_API, ACADEMIC_API } from "@/src/lib/api";
 import styles from "./dashboard.module.css";
 
 type Usuario = { id: number; nombre: string; rol?: string; email?: string };
-type Materia = { id: number; nombre: string; profesor_id: number | null };
+type Materia = { id: number; nombre: string; profesor_id: number | null; inscripcion_id?: number };
 type Alumno = { id: number; nombre: string; email?: string };
 
 export default function Dashboard() {
@@ -106,48 +106,49 @@ function VistaAlumno() {
   };
 
   const inscribirse = async (materiaId: number) => {
-    setInscribiendo(materiaId);
-    try {
-      const res = await fetch(`${ACADEMIC_API}/inscripciones/materias/${materiaId}/inscripciones`, {
-        method: "POST",
-        headers: authHeaders(),
-        body: JSON.stringify({ user_id: user?.id }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        toast.warning(data.message || "No se pudo inscribir");
-      } else {
-        toast.success("¡Inscripción exitosa!");
-        const materia = todasMaterias.find(m => m.id === materiaId);
-        if (materia) setMisMaterias(prev => [...prev, materia]);
-      }
-    } catch {
-      toast.warning("Error al conectar con el servidor");
-    } finally {
-      setInscribiendo(null);
+  setInscribiendo(materiaId);
+  try {
+    const res = await fetch(`${ACADEMIC_API}/inscripciones`, {
+  method: "POST",
+  headers: authHeaders(),
+  body: JSON.stringify({ user_id: user?.id, materia_id: materiaId }),
+});
+    const data = await res.json();
+    if (!res.ok) {
+      toast.warning(data.message || "No se pudo inscribir");
+    } else {
+      toast.success("¡Inscripción exitosa!");
+      const materia = todasMaterias.find(m => m.id === materiaId);
+      if (materia) setMisMaterias(prev => [...prev, { ...materia, inscripcion_id: data.id }]);
     }
-  };
+  } catch {
+    toast.warning("Error al conectar con el servidor");
+  } finally {
+    setInscribiendo(null);
+  }
+};
 
-  const desinscribirse = async (materiaId: number) => {
-    setDesinscribiendo(materiaId);
-    try {
-      const res = await fetch(`${ACADEMIC_API}/inscripciones/materias/${materiaId}/inscripciones/${user?.id}`, {
-        method: "DELETE",
-        headers: authHeaders(),
-      });
-      if (res.ok) {
-        toast.success("Desinscripción exitosa");
-        setMisMaterias(prev => prev.filter(m => m.id !== materiaId));
-      } else {
-        const data = await res.json();
-        toast.warning(data.message || "No se pudo desinscribir");
-      }
-    } catch {
-      toast.warning("Error al conectar con el servidor");
-    } finally {
-      setDesinscribiendo(null);
+  const desinscribirse = async (materiaId: number, inscripcionId?: number) => {
+  if (!inscripcionId) return;
+  setDesinscribiendo(materiaId);
+  try {
+    const res = await fetch(`${ACADEMIC_API}/inscripciones/${inscripcionId}`, {
+      method: "DELETE",
+      headers: authHeaders(),
+    });
+    if (res.ok) {
+      toast.success("Desinscripción exitosa");
+      setMisMaterias(prev => prev.filter(m => m.id !== materiaId));
+    } else {
+      const data = await res.json();
+      toast.warning(data.message || "No se pudo desinscribir");
     }
-  };
+  } catch {
+    toast.warning("Error al conectar con el servidor");
+  } finally {
+    setDesinscribiendo(null);
+  }
+};
 
   const yaInscrito = (materiaId: number) => misMaterias.some(m => m.id === materiaId);
 
@@ -191,13 +192,13 @@ function VistaAlumno() {
                 )}
               </div>
               <button
-                type="button"
-                onClick={() => desinscribirse(m.id)}
-                disabled={desinscribiendo === m.id}
-                className={styles.btnUnenroll}
-              >
-                {desinscribiendo === m.id ? "..." : "Salir"}
-              </button>
+  type="button"
+  onClick={() => desinscribirse(m.id, m.inscripcion_id)}
+  disabled={desinscribiendo === m.id}
+  className={styles.btnUnenroll}
+>
+  {desinscribiendo === m.id ? "..." : "Salir"}
+</button>
             </div>
           ))}
         </TablaTarjeta>
@@ -220,7 +221,7 @@ function VistaProfesor() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch(`${ACADEMIC_API}/profesor/materias/${user?.id}`, { headers: authHeaders() });
+        const res = await fetch(`${ACADEMIC_API}/profesores/${user?.id}/materias`, { headers: authHeaders() });
         const data = await res.json();
         if (Array.isArray(data)) setMisMaterias(data);
       } catch {
@@ -241,7 +242,7 @@ function VistaProfesor() {
     if (alumnosPorMateria[materiaId] !== undefined) return;
     setCargandoAlumnos(materiaId);
     try {
-      const res = await fetch(`${ACADEMIC_API}/profesor/materias/${materiaId}/alumnos`, { headers: authHeaders() });
+      const res = await fetch(`${ACADEMIC_API}/materias/${materiaId}/alumnos`, { headers: authHeaders() });
       const data = await res.json();
       setAlumnosPorMateria(prev => ({ ...prev, [materiaId]: Array.isArray(data) ? data : [] }));
     } catch {

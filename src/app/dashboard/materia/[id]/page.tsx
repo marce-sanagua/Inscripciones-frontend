@@ -80,32 +80,35 @@ export default function DetalleMateria() {
     return null;
   };
 
-  const guardarNota = async (alumnoId: number) => {
-    const form = notaForm[alumnoId] ?? {};
-    if (!form.parcial1 && !form.parcial2) { toast.warning("Ingresá al menos una nota"); return; }
-    setGuardandoNota(alumnoId);
+  const guardarNota = async (alumnoId: number, yaExiste: boolean) => {
+  const form = notaForm[alumnoId] ?? {};
+  if (!form.parcial1 && !form.parcial2) { toast.warning("Ingresá al menos una nota"); return; }
+  setGuardandoNota(alumnoId);
 
-    const p1 = form.parcial1 ? Number(form.parcial1) : undefined;
-    const p2 = form.parcial2 ? Number(form.parcial2) : undefined;
-    const promedio = p1 !== undefined && p2 !== undefined ? (p1 + p2) / 2 : p1 ?? p2;
+  const p1 = form.parcial1 ? Number(form.parcial1) : undefined;
+  const p2 = form.parcial2 ? Number(form.parcial2) : undefined;
+  const promedio = p1 !== undefined && p2 !== undefined ? (p1 + p2) / 2 : p1 ?? p2;
 
-    try {
-      const res = await fetch(`${ACADEMIC_API}/materias/${id}/calificaciones`, {
-        method: "POST",
-        headers: authHeaders(),
-        body: JSON.stringify({ user_id: alumnoId, parcial1: p1, parcial2: p2, nota: promedio, comentario: form.comentario }),
-      });
-      if (!res.ok) { toast.warning("Error al guardar"); return; }
-      toast.success("Nota guardada");
-      setCalificaciones(prev => {
-        const existe = prev.find(c => c.user_id === alumnoId);
-        const nueva = { id: Date.now(), user_id: alumnoId, parcial1: p1, parcial2: p2, nota: promedio, comentario: form.comentario };
-        if (existe) return prev.map(c => c.user_id === alumnoId ? nueva : c);
-        return [...prev, nueva];
-      });
-    } catch { toast.warning("Error al conectar"); }
-    finally { setGuardandoNota(null); }
-  };
+  try {
+    const url = yaExiste
+      ? `${ACADEMIC_API}/materias/${id}/calificaciones/${alumnoId}`
+      : `${ACADEMIC_API}/materias/${id}/calificaciones`;
+    const res = await fetch(url, {
+      method: yaExiste ? "PUT" : "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({ user_id: alumnoId, parcial1: p1, parcial2: p2, nota: promedio, comentario: form.comentario }),
+    });
+    if (!res.ok) { toast.warning("Error al guardar"); return; }
+    toast.success("Nota guardada");
+    setCalificaciones(prev => {
+      const existe = prev.find(c => c.user_id === alumnoId);
+      const nueva = { id: Date.now(), user_id: alumnoId, parcial1: p1, parcial2: p2, nota: promedio, comentario: form.comentario };
+      if (existe) return prev.map(c => c.user_id === alumnoId ? nueva : c);
+      return [...prev, nueva];
+    });
+  } catch { toast.warning("Error al conectar"); }
+  finally { setGuardandoNota(null); }
+};
 
   const getCalif = (alumnoId: number) => calificaciones.find(c => c.user_id === alumnoId);
   const miCalif = calificaciones.find(c => c.user_id === user?.id);
@@ -229,7 +232,7 @@ export default function DetalleMateria() {
                         onChange={e => setNotaForm(p => ({ ...p, [uid]: { ...p[uid], comentario: e.target.value } }))}
                         className={styles.notaInputWide}
                       />
-                      <button type="button" onClick={() => guardarNota(uid)} disabled={guardandoNota === uid} className={styles.btnGuardarNota}>
+                    <button type="button" onClick={() => guardarNota(uid, !!calif)} disabled={guardandoNota === uid} className={styles.btnGuardarNota}>
                         {guardandoNota === uid ? "..." : calif ? "Actualizar" : "Guardar"}
                       </button>
                       {calif && (
